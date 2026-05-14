@@ -1,6 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 import createError from "http-errors";
-import type { FriendRequestRepository, FriendRequestRow } from "./friend-request.repository.interface.js";
+import type {
+  FriendRequestRepository,
+  FriendRequestRow,
+  FriendRequestWithUsers,
+} from "./friend-request.repository.interface.js";
 
 /** Matches `friend_request_statuses.id` / `friend_requests.status` (SMALLINT). */
 const FriendRequestStatusId = {
@@ -23,13 +27,14 @@ export class PrismaFriendRequestRepository implements FriendRequestRepository {
     });
   }
 
-  async findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestRow[]> {
+  async findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestWithUsers[]> {
     return this.db.friendRequest.findMany({
       where: {
         receiverId,
         statusId: FriendRequestStatusId.PENDING,
       },
       orderBy: { createdAt: "desc" },
+      include: { sender: true, receiver: true },
     });
   }
 

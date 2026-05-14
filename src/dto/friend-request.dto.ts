@@ -1,7 +1,10 @@
+import type { User } from "@prisma/client";
 import createError from "http-errors";
-import type { FriendRequestRow } from "../repositories/friend-request.repository.interface.js";
+import type { FriendRequestRow, FriendRequestWithUsers } from "../repositories/friend-request.repository.interface.js";
 
 export type FriendRequestStatusLabel = "pending" | "accepted" | "rejected" | "cancelled";
+
+export type FriendUserSummaryDto = Pick<User, "id" | "name" | "profilePicture">;
 
 export interface FriendRequestDto {
   id: string;
@@ -10,6 +13,10 @@ export interface FriendRequestDto {
   status: FriendRequestStatusLabel;
   createdAt: string;
   updatedAt: string;
+  /** Present when the row was loaded with `include: { sender: true }`. */
+  sender?: FriendUserSummaryDto;
+  /** Present when the row was loaded with `include: { receiver: true }`. */
+  receiver?: FriendUserSummaryDto;
 }
 
 function statusIdToLabel(statusId: number): FriendRequestStatusLabel {
@@ -27,8 +34,12 @@ function statusIdToLabel(statusId: number): FriendRequestStatusLabel {
   }
 }
 
-export function mapFriendRequestToDto(row: FriendRequestRow): FriendRequestDto {
-  return {
+function mapUserSummary(u: Pick<User, "id" | "name" | "profilePicture">): FriendUserSummaryDto {
+  return { id: u.id, name: u.name, profilePicture: u.profilePicture };
+}
+
+export function mapFriendRequestToDto(row: FriendRequestRow | FriendRequestWithUsers): FriendRequestDto {
+  const base: FriendRequestDto = {
     id: row.id,
     senderId: row.senderId,
     receiverId: row.receiverId,
@@ -36,4 +47,11 @@ export function mapFriendRequestToDto(row: FriendRequestRow): FriendRequestDto {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+  if ("sender" in row && row.sender) {
+    base.sender = mapUserSummary(row.sender);
+  }
+  if ("receiver" in row && row.receiver) {
+    base.receiver = mapUserSummary(row.receiver);
+  }
+  return base;
 }

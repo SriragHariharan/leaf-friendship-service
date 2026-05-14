@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id String @id @default(uuid()) @db.Char(36)
+  name String @map("name") @db.VarChar(255)
+  profilePicture String @map("profile_picture") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+}
+
 /// Lookup for friend_requests.status (0–3). Kept in a separate table from request rows.
 model FriendRequestStatus {
   id   Int    @id @db.SmallInt
@@ -17,8 +28,7 @@ model FriendRequestStatus {
   @@map("friend_request_statuses")
 }
 
-/// Pending and other non–edge states. Do not use this table to query active friendships;
-/// accepted rows should be represented in [Friendship] instead.
+/* Friend Request */
 model FriendRequest {
   id         String   @id @default(uuid()) @db.Char(36)
   senderId   String   @map("sender_id") @db.Char(36)
@@ -29,6 +39,8 @@ model FriendRequest {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(0)
 
   requestStatus FriendRequestStatus @relation(fields: [statusId], references: [id])
+  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id])
+  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id])
 
   @@unique([senderId, receiverId], map: "friend_requests_sender_id_receiver_id_key")
   @@index([receiverId, statusId, createdAt(sort: Desc)], map: "idx_fr_receiver_status")

@@ -1,11 +1,14 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
-/** Prisma `friendRequest` row shape from `create` (matches default selection; avoids `FriendRequest` export issues). */
 export type FriendRequestRow = Awaited<ReturnType<PrismaClient["friendRequest"]["create"]>>;
+
+export type FriendRequestWithUsers = Prisma.FriendRequestGetPayload<{
+  include: { sender: true; receiver: true };
+}>;
 
 export interface FriendRequestRepository {
   createPending(senderId: string, receiverId: string): Promise<FriendRequestRow>;
-  findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestRow[]>;
+  findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestWithUsers[]>;
   existsFriendshipBetween(userA: string, userB: string): Promise<boolean>;
   acceptByReceiver(requestId: string, receiverId: string): Promise<FriendRequestRow>;
   rejectByReceiver(requestId: string, receiverId: string): Promise<FriendRequestRow>;
