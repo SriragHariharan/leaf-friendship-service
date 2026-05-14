@@ -15,10 +15,12 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.4.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "http-errors": "^2.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/http-errors": "^2.0.4",
     "@types/node": "^25.7.0",
     "prisma": "^6.4.1",
     "tsx": "^4.21.0",

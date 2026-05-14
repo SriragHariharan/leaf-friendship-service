@@ -20,9 +20,9 @@ model FriendRequestStatus {
 /// Pending and other non–edge states. Do not use this table to query active friendships;
 /// accepted rows should be represented in [Friendship] instead.
 model FriendRequest {
-  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  senderId   BigInt   @map("sender_id") @db.UnsignedBigInt
-  receiverId BigInt   @map("receiver_id") @db.UnsignedBigInt
+  id         String   @id @default(uuid()) @db.Char(36)
+  senderId   String   @map("sender_id") @db.Char(36)
+  receiverId String   @map("receiver_id") @db.Char(36)
   /// FK to [FriendRequestStatus]; maps to column `status` (SMALLINT) for parity with the SQL design.
   statusId   Int      @default(0) @map("status") @db.SmallInt
   createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(0)
@@ -40,11 +40,11 @@ model FriendRequest {
 /// Reads use `WHERE user_id = ?` only—no OR across an ordered pair. On accept, insert/update both rows.
 /// Do not use `friend_requests` to list active friendships.
 model Friendship {
-  userId             BigInt    @map("user_id") @db.UnsignedBigInt
-  friendId           BigInt    @map("friend_id") @db.UnsignedBigInt
-  createdAt          DateTime  @default(now()) @map("created_at") @db.DateTime(0)
-  interactionScore   Float     @default(0) @map("interaction_score") @db.Double
-  lastInteractionAt  DateTime? @map("last_interaction_at") @db.DateTime(0)
+  userId            String    @map("user_id") @db.Char(36)
+  friendId          String    @map("friend_id") @db.Char(36)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  interactionScore  Float     @default(0) @map("interaction_score") @db.Double
+  lastInteractionAt DateTime? @map("last_interaction_at") @db.DateTime(0)
 
   @@id([userId, friendId])
   @@index([userId, createdAt(sort: Desc)], map: "idx_friendships_user_created")
