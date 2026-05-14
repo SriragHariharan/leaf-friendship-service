@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// Lookup for friend_requests.status (0–3). Kept in a separate table from request rows.
+model FriendRequestStatus {
+  id   Int    @id @db.SmallInt
+  name String @unique @db.VarChar(32)
+
+  friendRequests FriendRequest[]
+
+  @@map("friend_request_statuses")
+}
+
+/// Pending and other non–edge states. Do not use this table to query active friendships;
+/// accepted rows should be represented in [Friendship] instead.
+model FriendRequest {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  senderId   BigInt   @map("sender_id") @db.UnsignedBigInt
+  receiverId BigInt   @map("receiver_id") @db.UnsignedBigInt
+  /// FK to [FriendRequestStatus]; maps to column `status` (SMALLINT) for parity with the SQL design.
+  statusId   Int      @default(0) @map("status") @db.SmallInt
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+
+  requestStatus FriendRequestStatus @relation(fields: [statusId], references: [id])
+
+  @@unique([senderId, receiverId], map: "friend_requests_sender_id_receiver_id_key")
+  @@index([receiverId, statusId, createdAt(sort: Desc)], map: "idx_fr_receiver_status")
+  @@index([senderId, statusId], map: "idx_fr_sender_status")
+  @@map("friend_requests")
+}
+
+/// Active friendships as directed edges: store **two rows** per mutual pair (A→B and B→A).
+/// Reads use `WHERE user_id = ?` only—no OR across an ordered pair. On accept, insert/update both rows.
+/// Do not use `friend_requests` to list active friendships.
+model Friendship {
+  userId             BigInt    @map("user_id") @db.UnsignedBigInt
+  friendId           BigInt    @map("friend_id") @db.UnsignedBigInt
+  createdAt          DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  interactionScore   Float     @default(0) @map("interaction_score") @db.Double
+  lastInteractionAt  DateTime? @map("last_interaction_at") @db.DateTime(0)
+
+  @@id([userId, friendId])
+  @@index([userId, createdAt(sort: Desc)], map: "idx_friendships_user_created")
+  @@index([userId, interactionScore(sort: Desc)], map: "idx_friendships_user_interaction")
+  @@index([userId, lastInteractionAt(sort: Desc)], map: "idx_friendships_user_last_interaction")
+  @@map("friendships")
+}

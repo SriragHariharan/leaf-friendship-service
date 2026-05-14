@@ -5,19 +5,22 @@
   "main": "dist/app.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/app.js",
-    "dev": "tsx watch src/app.ts"
+    "dev": "tsx watch src/app.ts",
+    "prisma:generate": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.4.1",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.7.0",
+    "prisma": "^6.4.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
