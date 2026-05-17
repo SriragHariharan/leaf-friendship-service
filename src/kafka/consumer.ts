@@ -1,6 +1,7 @@
 import type { IFriendRankerService } from "../services/friend-ranker.service.interface.js";
 import type { IUserService } from "../services/user.service.interface.js";
 import { consumePostCommented, consumePostLiked, stopPostEventConsumers } from "./post-events.consumer.js";
+import { consumeProfileVisited, stopProfileEventConsumers } from "./profile-events.consumer.js";
 import { consumeUserCreated, consumeUserUpdated, stopUserEventConsumers } from "./user-events.consumer.js";
 
 export async function startConsumers(
@@ -10,11 +11,16 @@ export async function startConsumers(
   await Promise.all([
     consumePostLiked(friendRankerService),
     consumePostCommented(friendRankerService),
+    consumeProfileVisited(friendRankerService),
     consumeUserCreated(userService),
     consumeUserUpdated(userService),
   ]);
 }
 
 export async function stopConsumers(): Promise<void> {
-  await Promise.allSettled([stopPostEventConsumers(), stopUserEventConsumers()]);
+  await Promise.allSettled([
+    stopPostEventConsumers(),
+    stopProfileEventConsumers(),
+    stopUserEventConsumers(),
+  ]);
 }
