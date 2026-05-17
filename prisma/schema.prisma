@@ -56,7 +56,7 @@ model Friendship {
   friendId          String    @map("friend_id") @db.Char(36)
   createdAt         DateTime  @default(now()) @map("created_at") @db.DateTime(0)
   interactionScore  Float     @default(0) @map("interaction_score") @db.Double
-  lastInteractionAt DateTime? @map("last_interaction_at") @db.DateTime(0)
+  lastInteractionAt DateTime  @default(now()) @map("last_interaction_at") @db.DateTime(0)
 
   @@id([userId, friendId])
   @@index([userId, createdAt(sort: Desc)], map: "idx_friendships_user_created")

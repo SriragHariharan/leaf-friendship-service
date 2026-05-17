@@ -16,7 +16,8 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "express": "^5.2.1",
-    "http-errors": "^2.0.0"
+    "http-errors": "^2.0.0",
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
