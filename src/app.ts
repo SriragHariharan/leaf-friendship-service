@@ -6,9 +6,12 @@ import "./express-globals.js";
 
 import { errorHandler } from "./errors/error-handler.js";
 import { FriendRequestController } from "./controllers/friend-request.controller.js";
+import { FriendsController } from "./controllers/friends.controller.js";
 import { PrismaFriendRequestRepository } from "./repositories/friend-request.repository.js";
+import { PrismaFriendsRepository } from "./repositories/friends.repository.js";
 import { PrismaFriendRankerRepository } from "./repositories/friend-ranker.repository.js";
 import { DefaultFriendRequestService } from "./services/friend-request.service.js";
+import { DefaultFriendsService } from "./services/friends.service.js";
 import { FriendRankerService } from "./services/friend-ranker.service.js";
 import { createV1Router } from "./routes/v1/index.js";
 import { startConsumers, stopConsumers } from "./kafka/consumer.js";
@@ -20,6 +23,10 @@ const friendRequestRepository = new PrismaFriendRequestRepository(prisma);
 const friendRequestService = new DefaultFriendRequestService(friendRequestRepository);
 const friendRequestController = new FriendRequestController(friendRequestService);
 
+const friendsRepository = new PrismaFriendsRepository(prisma);
+const friendsService = new DefaultFriendsService(friendsRepository);
+const friendsController = new FriendsController(friendsService);
+
 const friendRankerRepository = new PrismaFriendRankerRepository(prisma);
 const friendRankerService = new FriendRankerService(friendRankerRepository);
 
@@ -30,7 +37,7 @@ app.disable("x-powered-by");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api/v1", createV1Router(friendRequestController));
+app.use("/api/v1", createV1Router(friendRequestController, friendsController));
 
 app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));

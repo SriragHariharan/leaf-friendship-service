@@ -1,7 +1,7 @@
 import { Friendship, PrismaClient } from "@prisma/client";
 import { IFriendsRepository } from "./friends.repository.interface.js";
 
-class FriendsRepository implements IFriendsRepository {
+export class PrismaFriendsRepository implements IFriendsRepository {
 	constructor(private readonly db: PrismaClient) {}
 
 	async getFriends(userId: string): Promise<Friendship[]> {
@@ -27,5 +27,17 @@ class FriendsRepository implements IFriendsRepository {
 		});
 
 		return friendships.map((f) => f.friendId);
+	}
+
+	async unfriend(userId: string, friendId: string): Promise<void> {
+        // two way relationship A => B && B => A
+		await this.db.friendship.deleteMany({
+			where: {
+				OR: [
+					{ userId, friendId },
+					{ userId: friendId, friendId: userId },
+				],
+			},
+		});
 	}
 }
