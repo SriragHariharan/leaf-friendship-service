@@ -13,6 +13,8 @@ import { PrismaFriendRankerRepository } from "./repositories/friend-ranker.repos
 import { DefaultFriendRequestService } from "./services/friend-request.service.js";
 import { DefaultFriendsService } from "./services/friends.service.js";
 import { FriendRankerService } from "./services/friend-ranker.service.js";
+import { PrismaUserRepository } from "./repositories/user.repository.js";
+import { DefaultUserService } from "./services/user.service.js";
 import { createV1Router } from "./routes/v1/index.js";
 import { startConsumers, stopConsumers } from "./kafka/consumer.js";
 
@@ -29,6 +31,9 @@ const friendsController = new FriendsController(friendsService);
 
 const friendRankerRepository = new PrismaFriendRankerRepository(prisma);
 const friendRankerService = new FriendRankerService(friendRankerRepository);
+
+const userRepository = new PrismaUserRepository(prisma);
+const userService = new DefaultUserService(userRepository);
 
 const app = express();
 
@@ -49,8 +54,8 @@ const port = Number(process.env.PORT) || 4042;
 
 const server = app.listen(port, () => {
   console.log(`Friends service running on port ${port}`);
-  // Kafka: consume post.liked and post.commented in parallel (non-blocking errors).
-  void startConsumers(friendRankerService).catch((err: unknown) =>
+  // Kafka: consume post and user events in parallel (non-blocking errors).
+  void startConsumers(friendRankerService, userService).catch((err: unknown) =>
     console.error("Kafka consumers:", err),
   );
 });
