@@ -25,7 +25,7 @@ export class FriendsController {
     // for feed fanouts
     async getTopFriendIds(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.user?.aud;
+            const userId = (req.query.userId as string) || req.user?.aud;
             const limit = 50_000;
             if (!userId) {
                 return res.status(400).json({ error: "User ID is required" });

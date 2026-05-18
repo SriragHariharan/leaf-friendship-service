@@ -2,7 +2,7 @@ import type { IFriendRankerService } from "../services/friend-ranker.service.int
 import type { IUserService } from "../services/user.service.interface.js";
 import { consumePostCommented, consumePostLiked, stopPostEventConsumers } from "./post-events.consumer.js";
 import { consumeProfileVisited, stopProfileEventConsumers } from "./profile-events.consumer.js";
-import { consumeUserCreated, consumeUserUpdated, stopUserEventConsumers } from "./user-events.consumer.js";
+import { consumeUserEvents, stopUserEventConsumers } from "./user-events.consumer.js";
 
 export async function startConsumers(
   friendRankerService: IFriendRankerService,
@@ -12,8 +12,7 @@ export async function startConsumers(
     consumePostLiked(friendRankerService),
     consumePostCommented(friendRankerService),
     consumeProfileVisited(friendRankerService),
-    consumeUserCreated(userService),
-    consumeUserUpdated(userService),
+    consumeUserEvents(userService),
   ]);
 }
 

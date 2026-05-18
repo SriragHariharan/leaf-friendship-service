@@ -5,20 +5,15 @@ import type { IUserRepository } from "./user.repository.interface.js";
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly db: PrismaClient) {}
 
-  async createUser(data: UserEventDto): Promise<void> {
-    await this.db.user.create({
-      data: {
+  async upsertUser(data: UserEventDto): Promise<void> {
+    await this.db.user.upsert({
+      where: { id: data.id },
+      create: {
         id: data.id,
         name: data.name,
         profilePicture: data.profilePicture,
       },
-    });
-  }
-
-  async updateUser(id: string, data: Pick<UserEventDto, "name" | "profilePicture">): Promise<void> {
-    await this.db.user.update({
-      where: { id },
-      data: {
+      update: {
         name: data.name,
         profilePicture: data.profilePicture,
       },
