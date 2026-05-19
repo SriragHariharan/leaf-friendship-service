@@ -10,6 +10,7 @@ import type {
   IncomingFriendRequestsListDto,
 } from "./friend-request.service.interface.js";
 import type { IFriendRankerService } from "./friend-ranker.service.interface.js";
+import { publishFriendRequestSent } from "../kafka/friendship-events.producer.js";
 
 export class DefaultFriendRequestService implements FriendRequestService {
   constructor(
@@ -42,12 +43,24 @@ export class DefaultFriendRequestService implements FriendRequestService {
         throw createError(409, "Users are already friends");
       }
       const row = await this.repo.reactivateToPending(existing.id);
-      return mapFriendRequestToDto(row);
+      const dto = mapFriendRequestToDto(row);
+      await publishFriendRequestSent({
+        actorUserId: callerAud,
+        targetUserId: friendId,
+        requestId: dto.id,
+      });
+      return dto;
     }
 
     try {
       const row = await this.repo.createPending(callerAud, friendId);
-      return mapFriendRequestToDto(row);
+      const dto = mapFriendRequestToDto(row);
+      await publishFriendRequestSent({
+        actorUserId: callerAud,
+        targetUserId: friendId,
+        requestId: dto.id,
+      });
+      return dto;
     } catch (e) {
       if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
         throw createError(409, "A friend request between these users already exists");
