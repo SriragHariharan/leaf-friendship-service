@@ -9,9 +9,13 @@ import type {
   FriendRequestStatusAction,
   IncomingFriendRequestsListDto,
 } from "./friend-request.service.interface.js";
+import type { IFriendRankerService } from "./friend-ranker.service.interface.js";
 
 export class DefaultFriendRequestService implements FriendRequestService {
-  constructor(private readonly repo: FriendRequestRepository) {}
+  constructor(
+    private readonly repo: FriendRequestRepository,
+    private readonly friendRanker: IFriendRankerService,
+  ) {}
 
   async sendFriendRequest(callerAud: string, friendId: string): Promise<FriendRequestDto> {
     if (callerAud === friendId) {
@@ -83,12 +87,27 @@ export class DefaultFriendRequestService implements FriendRequestService {
     friendRequestId: string,
     status: FriendRequestStatusAction,
   ): Promise<FriendRequestDto> {
+    if (status === "accept") {
+      const row = await this.repo.acceptByReceiver(friendRequestId, callerAud);
+      await Promise.all([
+        this.friendRanker.updateFriendRank(
+          row.senderId,
+          row.receiverId,
+          "friend_request_accepted",
+        ),
+        this.friendRanker.updateFriendRank(
+          row.receiverId,
+          row.senderId,
+          "friend_request_accepted",
+        ),
+      ]);
+      return mapFriendRequestToDto(row);
+    }
+
     const row =
-      status === "accept"
-        ? await this.repo.acceptByReceiver(friendRequestId, callerAud)
-        : status === "reject"
-          ? await this.repo.rejectByReceiver(friendRequestId, callerAud)
-          : await this.repo.cancelBySender(friendRequestId, callerAud);
+      status === "reject"
+        ? await this.repo.rejectByReceiver(friendRequestId, callerAud)
+        : await this.repo.cancelBySender(friendRequestId, callerAud);
     return mapFriendRequestToDto(row);
   }
 }

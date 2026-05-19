@@ -22,15 +22,17 @@ const prisma = new PrismaClient();
 
 // Dependency Injection
 const friendRequestRepository = new PrismaFriendRequestRepository(prisma);
-const friendRequestService = new DefaultFriendRequestService(friendRequestRepository);
+const friendRankerRepository = new PrismaFriendRankerRepository(prisma);
+const friendRankerService = new FriendRankerService(friendRankerRepository);
+const friendRequestService = new DefaultFriendRequestService(
+  friendRequestRepository,
+  friendRankerService,
+);
 const friendRequestController = new FriendRequestController(friendRequestService);
 
 const friendsRepository = new PrismaFriendsRepository(prisma);
 const friendsService = new DefaultFriendsService(friendsRepository);
 const friendsController = new FriendsController(friendsService);
-
-const friendRankerRepository = new PrismaFriendRankerRepository(prisma);
-const friendRankerService = new FriendRankerService(friendRankerRepository);
 
 const userRepository = new PrismaUserRepository(prisma);
 const userService = new DefaultUserService(userRepository);
