@@ -4,82 +4,81 @@ import { isHttpError } from "http-errors";
 import type { IFriendRankerService } from "../services/friend-ranker.service.interface.js";
 import kafka from "./kafka.js";
 
-const postLikedConsumer = kafka.consumer({ groupId: "friends-service-post-liked" });
-const postLikedTopic = "post.liked";
+const interactionConsumer = kafka.consumer({ groupId: "friends-service-interaction-events" });
+const interactionTopic = "interaction.events";
 
-const postCommentedConsumer = kafka.consumer({ groupId: "friends-service-post-commented" });
-const postCommentedTopic = "post.commented";
+const SUPPORTED_EVENTS = new Set([
+  "post.liked",
+  "post.unliked",
+  "post.commented",
+  "post.uncommented",
+]);
 
-/** Parses a post interaction event and updates the owner's friendship score toward the interactor. */
-async function handleMessage(
-  topic: string,
-  eventType: "post_liked" | "post_commented",
-  raw: string,
-  ranker: IFriendRankerService,
-): Promise<void> {
-  let body: Record<string, unknown>;
+interface InteractionEventPayload {
+  eventType?: string;
+  actorUserId?: string;
+  targetUserId?: string;
+  postId?: string;
+  commentId?: string;
+  timestamp?: string;
+}
+
+/** Parses an interaction event and updates the owner's friendship score toward the actor. */
+async function handleMessage(raw: string, ranker: IFriendRankerService): Promise<void> {
+  let body: InteractionEventPayload;
   try {
-    body = JSON.parse(raw.trim() || "{}") as Record<string, unknown>;
+    body = JSON.parse(raw.trim() || "{}") as InteractionEventPayload;
   } catch {
-    console.warn(`[kafka:${topic}] skipped invalid message`);
+    console.warn(`[kafka:${interactionTopic}] skipped invalid message`);
     return;
   }
 
-  const postOwnerID = String(body.postOwnerID ?? "").trim();
-  const interactedUserID = String(body.interactedUserID ?? "").trim();
-  if (!postOwnerID || !interactedUserID) {
-    console.warn(`[kafka:${topic}] skipped invalid message`);
-    return;
-  }
-  if (postOwnerID === interactedUserID) {
-    console.warn(`[kafka:${topic}] skipped self-interaction`);
+  const eventType = String(body.eventType ?? "").trim();
+  const targetUserId = String(body.targetUserId ?? "").trim();
+  const actorUserId = String(body.actorUserId ?? "").trim();
+  const postId = String(body.postId ?? "").trim();
+
+  if (!SUPPORTED_EVENTS.has(eventType) || !targetUserId || !actorUserId || !postId) {
+    console.warn(`[kafka:${interactionTopic}] skipped invalid message`);
     return;
   }
 
-  const type =
-    body.type === "post_liked" || body.type === "post_commented" ? body.type : eventType;
+  if (targetUserId === actorUserId) {
+    console.warn(`[kafka:${interactionTopic}] skipped self-interaction`);
+    return;
+  }
 
-  await ranker.updateFriendRank(postOwnerID, interactedUserID, type);
+  if (
+    (eventType === "post.commented" || eventType === "post.uncommented") &&
+    !String(body.commentId ?? "").trim()
+  ) {
+    console.warn(`[kafka:${interactionTopic}] skipped comment event without commentId`);
+    return;
+  }
+
+  await ranker.updateFriendRank(targetUserId, actorUserId, eventType);
 }
 
-/** Returns a Kafka eachMessage handler that delegates to handleMessage with error isolation. */
-function onMessage(
-  topic: string,
-  eventType: "post_liked" | "post_commented",
-  ranker: IFriendRankerService,
-) {
-  return async ({ message }: EachMessagePayload): Promise<void> => {
-    try {
-      await handleMessage(topic, eventType, message.value?.toString() ?? "", ranker);
-    } catch (err: unknown) {
-      if (isHttpError(err) && err.status === 404) {
-        console.warn(`[kafka:${topic}] friendship not found, skipped`);
-        return;
+/** Subscribes to interaction.events and runs the consumer loop. */
+export async function consumeInteractionEvents(ranker: IFriendRankerService): Promise<void> {
+  await interactionConsumer.connect();
+  await interactionConsumer.subscribe({ topic: interactionTopic, fromBeginning: true });
+  await interactionConsumer.run({
+    eachMessage: async ({ message }: EachMessagePayload): Promise<void> => {
+      try {
+        await handleMessage(message.value?.toString() ?? "", ranker);
+      } catch (err: unknown) {
+        if (isHttpError(err) && err.status === 404) {
+          console.warn(`[kafka:${interactionTopic}] friendship not found, skipped`);
+          return;
+        }
+        console.error(`[kafka:${interactionTopic}] failed to process message:`, err);
       }
-      console.error(`[kafka:${topic}] failed to process message:`, err);
-    }
-  };
-}
-
-/** Subscribes to post.liked and runs the consumer loop. */
-export async function consumePostLiked(ranker: IFriendRankerService): Promise<void> {
-  await postLikedConsumer.connect();
-  await postLikedConsumer.subscribe({ topic: postLikedTopic, fromBeginning: true });
-  await postLikedConsumer.run({ 
-    eachMessage: onMessage(postLikedTopic, "post_liked", ranker) 
+    },
   });
 }
 
-/** Subscribes to post.commented and runs the consumer loop. */
-export async function consumePostCommented(ranker: IFriendRankerService): Promise<void> {
-  await postCommentedConsumer.connect();
-  await postCommentedConsumer.subscribe({ topic: postCommentedTopic, fromBeginning: true });
-  await postCommentedConsumer.run({
-    eachMessage: onMessage(postCommentedTopic, "post_commented", ranker),
-  });
-}
-
-/** Disconnects both post-event consumers (graceful shutdown). */
-export async function stopPostEventConsumers(): Promise<void> {
-  await Promise.allSettled([postLikedConsumer.disconnect(), postCommentedConsumer.disconnect()]);
+/** Disconnects the interaction events consumer (graceful shutdown). */
+export async function stopInteractionEventConsumers(): Promise<void> {
+  await interactionConsumer.disconnect();
 }

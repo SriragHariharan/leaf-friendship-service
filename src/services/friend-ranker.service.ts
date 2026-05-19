@@ -5,7 +5,9 @@ import type { IFriendRankerRepository } from "../repositories/friend-ranker.repo
 /** Per-event interaction weights used when ranking friends. */
 const FRIEND_RANK_SCORE = {
   POST_LIKED: 2,
+  POST_UNLIKED: -2,
   POST_COMMENTED: 5,
+  POST_UNCOMMENTED: -5,
   FRIEND_REQUEST_ACCEPTED: 50,
   PROFILE_VISIT: 1,
   IMAGE_VIEW: 0.5,
@@ -13,8 +15,10 @@ const FRIEND_RANK_SCORE = {
 
 /** Maps incoming event type strings to their interaction weight. */
 const EVENT_SCORE_MAP: Record<string, number> = {
-  post_liked: FRIEND_RANK_SCORE.POST_LIKED,
-  post_commented: FRIEND_RANK_SCORE.POST_COMMENTED,
+  "post.liked": FRIEND_RANK_SCORE.POST_LIKED,
+  "post.unliked": FRIEND_RANK_SCORE.POST_UNLIKED,
+  "post.commented": FRIEND_RANK_SCORE.POST_COMMENTED,
+  "post.uncommented": FRIEND_RANK_SCORE.POST_UNCOMMENTED,
   friend_request_accepted: FRIEND_RANK_SCORE.FRIEND_REQUEST_ACCEPTED,
   profile_visited: FRIEND_RANK_SCORE.PROFILE_VISIT,
   image_viewed: FRIEND_RANK_SCORE.IMAGE_VIEW,
