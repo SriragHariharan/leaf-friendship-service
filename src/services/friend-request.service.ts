@@ -3,7 +3,12 @@ import createError from "http-errors";
 import { mapFriendRequestToDto, type FriendRequestDto } from "../dto/friend-request.dto.js";
 import type { FriendRelationshipDto } from "../dto/friend-relationship.dto.js";
 import type { FriendRequestRepository } from "../repositories/friend-request.repository.interface.js";
-import type { FriendRequestService, FriendRequestStatusAction } from "./friend-request.service.interface.js";
+import { FriendRequestStatusId } from "../repositories/friend-request.repository.js";
+import type {
+  FriendRequestService,
+  FriendRequestStatusAction,
+  IncomingFriendRequestsListDto,
+} from "./friend-request.service.interface.js";
 
 export class DefaultFriendRequestService implements FriendRequestService {
   constructor(private readonly repo: FriendRequestRepository) {}
@@ -15,6 +20,27 @@ export class DefaultFriendRequestService implements FriendRequestService {
     if (await this.repo.existsFriendshipBetween(callerAud, friendId)) {
       throw createError(409, "Users are already friends");
     }
+
+    const incoming = await this.repo.findDirectedRequest(friendId, callerAud);
+    if (incoming?.statusId === FriendRequestStatusId.PENDING) {
+      throw createError(409, "This user already sent you a friend request");
+    }
+
+    const existing = await this.repo.findDirectedRequest(callerAud, friendId);
+    if (existing) {
+      if (existing.statusId === FriendRequestStatusId.PENDING) {
+        throw createError(409, "A friend request between these users already exists");
+      }
+      if (
+        existing.statusId === FriendRequestStatusId.ACCEPTED &&
+        (await this.repo.existsFriendshipBetween(callerAud, friendId))
+      ) {
+        throw createError(409, "Users are already friends");
+      }
+      const row = await this.repo.reactivateToPending(existing.id);
+      return mapFriendRequestToDto(row);
+    }
+
     try {
       const row = await this.repo.createPending(callerAud, friendId);
       return mapFriendRequestToDto(row);
@@ -26,9 +52,15 @@ export class DefaultFriendRequestService implements FriendRequestService {
     }
   }
 
-  async listIncomingPending(callerAud: string): Promise<FriendRequestDto[]> {
-    const rows = await this.repo.findPendingIncomingForReceiver(callerAud);
-    return rows.map(mapFriendRequestToDto);
+  async listIncomingPending(callerAud: string): Promise<IncomingFriendRequestsListDto> {
+    const [rows, total] = await Promise.all([
+      this.repo.findPendingIncomingForReceiver(callerAud),
+      this.repo.countPendingIncomingForReceiver(callerAud),
+    ]);
+    return {
+      friendRequests: rows.map(mapFriendRequestToDto),
+      total,
+    };
   }
 
   async getRelationship(callerAud: string, otherUserId: string): Promise<FriendRelationshipDto> {

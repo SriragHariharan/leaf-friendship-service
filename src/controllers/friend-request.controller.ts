@@ -2,7 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 import createError from "http-errors";
 import type { FriendRequestDto } from "../dto/friend-request.dto.js";
 import type { FriendRelationshipDto } from "../dto/friend-relationship.dto.js";
-import type { FriendRequestService, FriendRequestStatusAction } from "../services/friend-request.service.interface.js";
+import type {
+  FriendRequestService,
+  FriendRequestStatusAction,
+  IncomingFriendRequestsListDto,
+} from "../services/friend-request.service.interface.js";
 
 type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -75,7 +79,7 @@ export class FriendRequestController {
   // List incoming pending friend requests
   readonly listIncomingPending = asyncHandler(async (req: Request, res: Response) => {
     const aud = getCallerAud(req);
-    const data: FriendRequestDto[] = await this.friendRequestService.listIncomingPending(aud);
+    const data: IncomingFriendRequestsListDto = await this.friendRequestService.listIncomingPending(aud);
     res.status(200).json({ success: true, message: "Friend requests retrieved", data });
   });
 

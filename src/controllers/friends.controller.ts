@@ -1,54 +1,46 @@
-import { NextFunction, Request, Response } from "express";
-import { IFriendsService } from "../services/friends.service.interface.js";
+import type { NextFunction, Request, Response } from "express";
+import createError from "http-errors";
+import type { FriendsListDto } from "../dto/friend-list.dto.js";
+import type { IFriendsService } from "../services/friends.service.interface.js";
+import { requireUserId } from "../utils/params.js";
+
+type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+
+function asyncHandler(fn: AsyncRequestHandler): (req: Request, res: Response, next: NextFunction) => void {
+  return (req, res, next) => {
+    void Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+function getCallerAud(req: Request): string {
+  const aud = req.user?.aud;
+  const userId = typeof aud === "string" ? aud : Array.isArray(aud) ? aud[0] : undefined;
+  if (!userId) {
+    throw createError(401, "Authentication required");
+  }
+  return userId;
+}
 
 export class FriendsController {
-    private readonly friendsService: IFriendsService;
-    constructor(friendsService: IFriendsService) {
-        this.friendsService = friendsService;
-    }
+  constructor(private readonly friendsService: IFriendsService) {}
 
-    //get friends for a user
-    async getFriends(req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.user?.aud;
-            if (!userId) {
-                return res.status(400).json({ error: "User ID is required" });
-            }
-            const friends = await this.friendsService.getFriends(userId);
-            res.status(200).json(friends);
-        } catch (error) {
-            next(error);
-        }
-    }
+  readonly getFriends = asyncHandler(async (req: Request, res: Response) => {
+    const userId = getCallerAud(req);
+    const data: FriendsListDto = await this.friendsService.getFriends(userId);
+    res.status(200).json({ success: true, message: "Friends retrieved", data });
+  });
 
-    //get top friend ids of a user (used for feed service)
-    // for feed fanouts
-    async getTopFriendIds(req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = (req.query.userId as string) || req.user?.aud;
-            const limit = 50_000;
-            if (!userId) {
-                return res.status(400).json({ error: "User ID is required" });
-            }
-            const topFriendIds = await this.friendsService.getTopFriendIds(userId, limit);
-            res.status(200).json(topFriendIds);
-        } catch (error) {
-            next(error);
-        }
-    }
+  readonly getTopFriendIds = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req.query.userId as string) || getCallerAud(req);
+    const limit = 50_000;
+    const topFriendIds = await this.friendsService.getTopFriendIds(userId, limit);
+    res.status(200).json(topFriendIds);
+  });
 
-    //unfriend a user
-    async unfriend(req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.user?.aud;
-            const friendId = req.params.friendId as string;
-            if (!userId || !friendId) {
-                return res.status(400).json({ error: "User ID and friend ID are required" });
-            }
-            await this.friendsService.unfriend(userId, friendId);
-            res.status(200).json({ message: "Unfriended user" });
-        } catch (error) {
-            next(error);
-        }
-    }
+  readonly unfriend = asyncHandler(async (req: Request, res: Response) => {
+    const userId = getCallerAud(req);
+    const friendId = requireUserId(req.params.friendId, "friendId");
+    await this.friendsService.unfriend(userId, friendId);
+    res.status(200).json({ success: true, message: "Unfriended user" });
+  });
 }

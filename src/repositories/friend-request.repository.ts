@@ -7,7 +7,7 @@ import type {
 } from "./friend-request.repository.interface.js";
 
 /** Matches `friend_request_statuses.id` / `friend_requests.status` (SMALLINT). */
-const FriendRequestStatusId = {
+export const FriendRequestStatusId = {
   PENDING: 0,
   ACCEPTED: 1,
   REJECTED: 2,
@@ -27,6 +27,21 @@ export class PrismaFriendRequestRepository implements FriendRequestRepository {
     });
   }
 
+  async findDirectedRequest(senderId: string, receiverId: string): Promise<FriendRequestRow | null> {
+    return this.db.friendRequest.findUnique({
+      where: {
+        senderId_receiverId: { senderId, receiverId },
+      },
+    });
+  }
+
+  async reactivateToPending(requestId: string): Promise<FriendRequestRow> {
+    return this.db.friendRequest.update({
+      where: { id: requestId },
+      data: { statusId: FriendRequestStatusId.PENDING },
+    });
+  }
+
   async findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestWithUsers[]> {
     return this.db.friendRequest.findMany({
       where: {
@@ -35,6 +50,15 @@ export class PrismaFriendRequestRepository implements FriendRequestRepository {
       },
       orderBy: { createdAt: "desc" },
       include: { sender: true, receiver: true },
+    });
+  }
+
+  async countPendingIncomingForReceiver(receiverId: string): Promise<number> {
+    return this.db.friendRequest.count({
+      where: {
+        receiverId,
+        statusId: FriendRequestStatusId.PENDING,
+      },
     });
   }
 
