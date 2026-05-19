@@ -38,6 +38,18 @@ export class PrismaFriendRequestRepository implements FriendRequestRepository {
     });
   }
 
+  async findPendingBetween(userA: string, userB: string): Promise<FriendRequestRow | null> {
+    return this.db.friendRequest.findFirst({
+      where: {
+        statusId: FriendRequestStatusId.PENDING,
+        OR: [
+          { senderId: userA, receiverId: userB },
+          { senderId: userB, receiverId: userA },
+        ],
+      },
+    });
+  }
+
   async existsFriendshipBetween(userA: string, userB: string): Promise<boolean> {
     const count = await this.db.friendship.count({
       where: {

@@ -17,11 +17,13 @@
     "@prisma/client": "^6.19.3",
     "express": "^5.2.1",
     "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/http-errors": "^2.0.4",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.7.0",
     "prisma": "^6.19.3",
     "tsx": "^4.21.0",

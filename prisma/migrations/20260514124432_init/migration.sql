@@ -18,6 +18,12 @@ CREATE TABLE `friend_request_statuses` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+INSERT INTO `friend_request_statuses` (`id`, `name`) VALUES
+    (0, 'pending'),
+    (1, 'accepted'),
+    (2, 'rejected'),
+    (3, 'cancelled');
+
 -- CreateTable
 CREATE TABLE `friend_requests` (
     `id` CHAR(36) NOT NULL,

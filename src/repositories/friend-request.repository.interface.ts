@@ -9,6 +9,7 @@ export type FriendRequestWithUsers = Prisma.FriendRequestGetPayload<{
 export interface FriendRequestRepository {
   createPending(senderId: string, receiverId: string): Promise<FriendRequestRow>;
   findPendingIncomingForReceiver(receiverId: string): Promise<FriendRequestWithUsers[]>;
+  findPendingBetween(userA: string, userB: string): Promise<FriendRequestRow | null>;
   existsFriendshipBetween(userA: string, userB: string): Promise<boolean>;
   acceptByReceiver(requestId: string, receiverId: string): Promise<FriendRequestRow>;
   rejectByReceiver(requestId: string, receiverId: string): Promise<FriendRequestRow>;
