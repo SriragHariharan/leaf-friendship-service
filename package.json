@@ -8,13 +8,16 @@
     "build": "prisma generate && tsc",
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.3",

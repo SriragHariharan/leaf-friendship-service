@@ -1,8 +1,9 @@
+import "dotenv/config";
 import express from "express";
 import createError from "http-errors";
-import { PrismaClient } from "@prisma/client";
 
 import "./express-globals.js";
+import prisma from "./helpers/prisma.js";
 
 import { errorHandler } from "./errors/error-handler.js";
 import { FriendRequestController } from "./controllers/friend-request.controller.js";
@@ -17,8 +18,6 @@ import { PrismaUserRepository } from "./repositories/user.repository.js";
 import { DefaultUserService } from "./services/user.service.js";
 import { createV1Router } from "./routes/v1/index.js";
 import { startConsumers, stopConsumers } from "./kafka/consumer.js";
-
-const prisma = new PrismaClient();
 
 // Dependency Injection
 const friendRequestRepository = new PrismaFriendRequestRepository(prisma);
