@@ -45,6 +45,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1", createV1Router(friendRequestController, friendsController));
 
+app.get("/test", (_req, res) => {
+  res.json({ message: "Friends service up and running." });
+});
+
 app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));
 });
